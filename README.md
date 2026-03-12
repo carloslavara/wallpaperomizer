@@ -15,7 +15,7 @@ A privacy-first, browser-based iPhone wallpaper editor with device presets, lock
 
 ## Run locally
 
-Because this is a static app, you can open `index.html` directly in a browser, or serve it:
+Because this is a static app, you can open `index.html` directly in a browser (the JS is inlined to avoid `file://` CORS issues), or serve it:
 
 ```bash
 python -m http.server 4173
