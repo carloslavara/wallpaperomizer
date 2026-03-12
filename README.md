@@ -10,6 +10,7 @@ A privacy-first, browser-based iPhone wallpaper editor with device presets, lock
 - Pan, zoom, rotate controls
 - Fit, fill, center, and reset helpers
 - Per-guide visibility toggles + global guide toggle
+- Canvas color picker with image-based color suggestions
 - Guide overlays are preview-only (not exported)
 - Export PNG or JPG with quality control
 

@@ -122,7 +122,8 @@ const state = {
   showGuides: true,
   visibleGuideIds: [],
   exportFormat: 'png',
-  exportQuality: 0.92
+  exportQuality: 0.92,
+  canvasColor: '#0b0f20'
 };
 
 const startEditingBtn = document.getElementById('startEditingBtn');
@@ -134,6 +135,8 @@ const guideToggleList = document.getElementById('guideToggleList');
 const canvas = document.getElementById('editorCanvas');
 const ctx = canvas.getContext('2d');
 const fileInput = document.getElementById('fileInput');
+const canvasColorInput = document.getElementById('canvasColorInput');
+const colorSuggestions = document.getElementById('colorSuggestions');
 const zoomRange = document.getElementById('zoomRange');
 const rotateRange = document.getElementById('rotateRange');
 const fitBtn = document.getElementById('fitBtn');
@@ -206,7 +209,7 @@ function drawGuides() {
 
 function drawImage() {
   if (!state.image?.element) {
-    ctx.fillStyle = '#10162a';
+    ctx.fillStyle = state.canvasColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#95a0c7';
     ctx.font = '32px system-ui';
@@ -216,7 +219,7 @@ function drawImage() {
   }
 
   ctx.save();
-  ctx.fillStyle = '#0b0f20';
+  ctx.fillStyle = state.canvasColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.translate(state.image.x, state.image.y);
@@ -337,6 +340,12 @@ function bindEvents() {
       rotation: 0
     };
     fitImage();
+    const suggestions = getSuggestedColors(imageElement);
+    renderColorSuggestions(suggestions);
+    if (suggestions[0]) {
+      state.canvasColor = suggestions[0];
+      canvasColorInput.value = suggestions[0];
+    }
     render();
   });
 
@@ -379,6 +388,11 @@ function bindEvents() {
 
   qualityRange.addEventListener('input', () => {
     state.exportQuality = Number(qualityRange.value);
+  });
+
+  canvasColorInput.addEventListener('input', () => {
+    state.canvasColor = normalizeHexColor(canvasColorInput.value);
+    render();
   });
 
   downloadBtn.addEventListener('click', () => {
@@ -441,13 +455,73 @@ function loadImage(src) {
   });
 }
 
+function normalizeHexColor(hex) {
+  if (!hex) return '#0b0f20';
+  const normalized = hex.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(normalized)) return normalized;
+  return '#0b0f20';
+}
+
+function rgbToHex(r, g, b) {
+  const toHex = (value) => value.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function getSuggestedColors(imageElement) {
+  const sampleCanvas = document.createElement('canvas');
+  const maxSample = 48;
+  const ratio = Math.min(maxSample / imageElement.naturalWidth, maxSample / imageElement.naturalHeight, 1);
+  sampleCanvas.width = Math.max(1, Math.floor(imageElement.naturalWidth * ratio));
+  sampleCanvas.height = Math.max(1, Math.floor(imageElement.naturalHeight * ratio));
+  const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+  sampleCtx.drawImage(imageElement, 0, 0, sampleCanvas.width, sampleCanvas.height);
+  const pixels = sampleCtx.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height).data;
+
+  const buckets = new Map();
+  for (let i = 0; i < pixels.length; i += 16) {
+    const alpha = pixels[i + 3];
+    if (alpha < 200) continue;
+    const r = Math.floor(pixels[i] / 32) * 32;
+    const g = Math.floor(pixels[i + 1] / 32) * 32;
+    const b = Math.floor(pixels[i + 2] / 32) * 32;
+    const key = `${r},${g},${b}`;
+    buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+
+  return [...buckets.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([key]) => {
+      const [r, g, b] = key.split(',').map((value) => Number(value));
+      return rgbToHex(r, g, b);
+    });
+}
+
+function renderColorSuggestions(colors) {
+  colorSuggestions.innerHTML = '';
+  for (const color of colors) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'color-swatch';
+    button.style.background = color;
+    button.title = `Use ${color}`;
+    button.ariaLabel = `Use ${color}`;
+    button.addEventListener('click', () => {
+      state.canvasColor = color;
+      canvasColorInput.value = color;
+      render();
+    });
+    colorSuggestions.append(button);
+  }
+}
+
 function renderExportCanvas() {
   const exportCanvas = document.createElement('canvas');
   exportCanvas.width = canvas.width;
   exportCanvas.height = canvas.height;
   const exportCtx = exportCanvas.getContext('2d');
 
-  exportCtx.fillStyle = '#0b0f20';
+  exportCtx.fillStyle = state.canvasColor;
   exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
   exportCtx.translate(state.image.x, state.image.y);
   exportCtx.rotate((state.image.rotation * Math.PI) / 180);
@@ -480,6 +554,7 @@ function downloadWallpaper() {
 
 function init() {
   setupDeviceOptions();
+  canvasColorInput.value = state.canvasColor;
   seedGuideVisibility();
   renderGuideControls();
   updateCanvasSize();
