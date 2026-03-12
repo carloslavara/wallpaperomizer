@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wallpaperomizer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="landing" id="landing">
+      <h1>Wallpaperomizer</h1>
+      <p>Create iPhone wallpapers with device-accurate sizing and safe-area guides.</p>
+      <button id="startEditingBtn">Start editing</button>
+    </header>
+
+    <main class="editor hidden" id="editor">
+      <aside class="panel left-panel">
+        <h2>Device</h2>
+        <label for="deviceSelect">Model</label>
+        <select id="deviceSelect"></select>
+
+        <h2>Mode</h2>
+        <label><input type="radio" name="mode" value="lockScreen" checked /> Lock screen</label>
+        <label><input type="radio" name="mode" value="homeScreen" /> Home screen</label>
+
+        <h2>Guides</h2>
+        <label><input type="checkbox" id="showGuides" checked /> Show guides</label>
+        <div id="guideToggleList" class="guide-toggle-list"></div>
+      </aside>
+
+      <section class="canvas-panel">
+        <div class="canvas-toolbar">
+          <span id="canvasMeta"></span>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="editorCanvas"></canvas>
+        </div>
+      </section>
+
+      <aside class="panel right-panel">
+        <h2>Image</h2>
+        <label class="file-upload">
+          Upload image
+          <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" />
+        </label>
+
+        <h2>Transform</h2>
+        <label>Zoom <input id="zoomRange" type="range" min="0.2" max="4" value="1" step="0.01" /></label>
+        <label>Rotate <input id="rotateRange" type="range" min="-180" max="180" value="0" step="1" /></label>
+        <div class="button-row">
+          <button id="fitBtn">Fit</button>
+          <button id="fillBtn">Fill</button>
+          <button id="centerBtn">Center</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+
+        <h2>Export</h2>
+        <label for="exportFormat">Format</label>
+        <select id="exportFormat">
+          <option value="png">PNG</option>
+          <option value="jpg">JPG</option>
+        </select>
+        <label id="qualityWrap">JPG Quality <input id="qualityRange" type="range" min="0.1" max="1" value="0.92" step="0.01" /></label>
+        <button id="downloadBtn">Download wallpaper</button>
+      </aside>
+    </main>
+
+    <dialog id="helpDialog">
+      <h3>Guide info</h3>
+      <p>Guides are visual references and are never exported.</p>
+      <ul>
+        <li><strong>Danger</strong>: avoid placing key subjects here.</li>
+        <li><strong>Cutout</strong>: camera / dynamic island area.</li>
+        <li><strong>Informational</strong>: areas usually occupied by UI.</li>
+      </ul>
+      <button id="closeHelpBtn">Close</button>
+    </dialog>
+
+    <button id="helpBtn" class="help-btn">?</button>
+
+    <script src="app.js"></script>
+  </body>
+</html>
