@@ -6,11 +6,11 @@ const presets = [
     height: 2688,
     modes: {
       lockScreen: [
-        { id: 'status-date', label: 'Status / date', x: 0, y: 0, width: 1242, height: 320, kind: 'danger' },
-        { id: 'clock', label: 'Clock block', x: 0, y: 320, width: 1242, height: 270, kind: 'danger' },
-        { id: 'widgets', label: 'Widget area', x: 0, y: 590, width: 1242, height: 240, kind: 'danger' },
-        { id: 'safe-content', label: 'Artwork safe area', x: 0, y: 830, width: 1242, height: 1738, kind: 'informational' },
-        { id: 'bottom-gesture', label: 'Bottom gesture area', x: 0, y: 2568, width: 1242, height: 120, kind: 'danger' }
+        { id: 'status-date', label: 'Date / weather', x: 95, y: 200, width: 1052, height: 130, kind: 'danger' },
+        { id: 'clock', label: 'Clock container', x: 95, y: 350, width: 1052, height: 420, kind: 'danger' },
+        { id: 'widgets', label: 'Widgets container', x: 95, y: 800, width: 1052, height: 270, kind: 'danger' },
+        { id: 'safe-content', label: 'Artwork safe area', x: 0, y: 1070, width: 1242, height: 1500, kind: 'informational' },
+        { id: 'bottom-gesture', label: 'Bottom gesture area', x: 0, y: 2570, width: 1242, height: 118, kind: 'danger' }
       ],
       homeScreen: [
         { id: 'status', label: 'Status bar', x: 0, y: 0, width: 1242, height: 140, kind: 'danger' },
