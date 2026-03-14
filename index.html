@@ -95,10 +95,11 @@ const presets = [
     height: 2688,
     modes: {
       lockScreen: [
-        { id: 'notch', label: 'Notch', x: 370, y: 35, width: 500, height: 135, kind: 'cutout' },
-        { id: 'clock', label: 'Clock area', x: 120, y: 175, width: 1000, height: 300, kind: 'danger' },
-        { id: 'widgets', label: 'Widget area', x: 90, y: 520, width: 1060, height: 520, kind: 'danger' },
-        { id: 'bottom', label: 'Bottom area', x: 0, y: 2510, width: 1242, height: 178, kind: 'danger' }
+        { id: 'status-date', label: 'Status / date', x: 0, y: 0, width: 1242, height: 300, kind: 'danger' },
+        { id: 'clock', label: 'Clock block', x: 0, y: 300, width: 1242, height: 340, kind: 'danger' },
+        { id: 'widgets', label: 'Widget area', x: 0, y: 640, width: 1242, height: 300, kind: 'danger' },
+        { id: 'safe-content', label: 'Artwork safe area', x: 0, y: 940, width: 1242, height: 1520, kind: 'informational' },
+        { id: 'bottom-gesture', label: 'Bottom gesture area', x: 0, y: 2586, width: 1242, height: 102, kind: 'danger' }
       ],
       homeScreen: [
         { id: 'status', label: 'Status bar', x: 0, y: 0, width: 1242, height: 140, kind: 'danger' },
