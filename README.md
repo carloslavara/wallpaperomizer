@@ -13,7 +13,7 @@ A privacy-first, browser-based iPhone wallpaper editor with device presets, lock
 - Canvas color picker with image-based color suggestions
 - Guide overlays are preview-only (not exported)
 - Export PNG or JPG with quality control
-- iPhone 11 Pro Max lock-screen guides use measured containers with aligned safe-area width (x=95..1147): date (y=230..320), clock (y=350..745), widgets (y=770..1055), safe artwork y=1055..2570 (+ conservative 1080..2550), gesture y=2570..2688
+- iPhone 11 Pro Max lock-screen guides use 60px horizontal insets on both sides (x=60..1182, width=1122) for date/clock/widgets/safe areas and the bottom gesture exclusion
 
 ## Run locally
 
