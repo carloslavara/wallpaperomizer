@@ -125,7 +125,8 @@ const state = {
   visibleGuideIds: [],
   exportFormat: 'png',
   exportQuality: 0.92,
-  canvasColor: '#0b0f20'
+  canvasColor: '#0b0f20',
+  snapToBottom: false
 };
 
 const startEditingBtn = document.getElementById('startEditingBtn');
@@ -139,11 +140,13 @@ const ctx = canvas.getContext('2d');
 const fileInput = document.getElementById('fileInput');
 const canvasColorInput = document.getElementById('canvasColorInput');
 const colorSuggestions = document.getElementById('colorSuggestions');
+const snapBottomToggle = document.getElementById('snapBottomToggle');
 const zoomRange = document.getElementById('zoomRange');
 const rotateRange = document.getElementById('rotateRange');
 const fitBtn = document.getElementById('fitBtn');
 const fillBtn = document.getElementById('fillBtn');
 const centerBtn = document.getElementById('centerBtn');
+const alignBottomBtn = document.getElementById('alignBottomBtn');
 const resetBtn = document.getElementById('resetBtn');
 const exportFormat = document.getElementById('exportFormat');
 const qualityRange = document.getElementById('qualityRange');
@@ -266,13 +269,30 @@ function centerImage() {
   state.image.y = canvas.height / 2;
 }
 
+function alignImageBottom() {
+  if (!state.image) return;
+  const renderedWidth = state.image.naturalWidth * state.image.scale;
+  const renderedHeight = state.image.naturalHeight * state.image.scale;
+  state.image.x = (canvas.width - renderedWidth) / 2 + renderedWidth / 2;
+  state.image.y = canvas.height - renderedHeight + renderedHeight / 2;
+}
+
+function applySnapToBottomIfEnabled() {
+  if (!state.image || !state.snapToBottom) return;
+  alignImageBottom();
+}
+
 function fitImage() {
   if (!state.image) return;
   const sx = canvas.width / state.image.naturalWidth;
   const sy = canvas.height / state.image.naturalHeight;
   state.image.scale = Math.min(sx, sy);
   zoomRange.value = String(state.image.scale);
-  centerImage();
+  if (state.snapToBottom) {
+    alignImageBottom();
+  } else {
+    centerImage();
+  }
 }
 
 function fillImage() {
@@ -281,7 +301,11 @@ function fillImage() {
   const sy = canvas.height / state.image.naturalHeight;
   state.image.scale = Math.max(sx, sy);
   zoomRange.value = String(state.image.scale);
-  centerImage();
+  if (state.snapToBottom) {
+    alignImageBottom();
+  } else {
+    centerImage();
+  }
 }
 
 function resetImage() {
@@ -296,7 +320,11 @@ function updateForPresetOrMode() {
   seedGuideVisibility();
   renderGuideControls();
   if (state.image) {
-    centerImage();
+    if (state.snapToBottom) {
+      alignImageBottom();
+    } else {
+      centerImage();
+    }
   }
   render();
 }
@@ -342,6 +370,7 @@ function bindEvents() {
       rotation: 0
     };
     fitImage();
+    applySnapToBottomIfEnabled();
     const suggestions = getSuggestedColors(imageElement);
     renderColorSuggestions(suggestions);
     if (suggestions[0]) {
@@ -354,12 +383,14 @@ function bindEvents() {
   zoomRange.addEventListener('input', () => {
     if (!state.image) return;
     state.image.scale = Number(zoomRange.value);
+    applySnapToBottomIfEnabled();
     render();
   });
 
   rotateRange.addEventListener('input', () => {
     if (!state.image) return;
     state.image.rotation = Number(rotateRange.value);
+    applySnapToBottomIfEnabled();
     render();
   });
 
@@ -375,6 +406,19 @@ function bindEvents() {
 
   centerBtn.addEventListener('click', () => {
     centerImage();
+    state.snapToBottom = false;
+    snapBottomToggle.checked = false;
+    render();
+  });
+
+  alignBottomBtn.addEventListener('click', () => {
+    alignImageBottom();
+    render();
+  });
+
+  snapBottomToggle.addEventListener('change', () => {
+    state.snapToBottom = snapBottomToggle.checked;
+    applySnapToBottomIfEnabled();
     render();
   });
 
@@ -410,6 +454,10 @@ function bindEvents() {
 
   const onPointerDown = (event) => {
     if (!state.image) return;
+    if (state.snapToBottom) {
+      state.snapToBottom = false;
+      snapBottomToggle.checked = false;
+    }
     isDragging = true;
     canvas.setPointerCapture(event.pointerId);
     const point = getCanvasPoint(event);
@@ -557,6 +605,7 @@ function downloadWallpaper() {
 function init() {
   setupDeviceOptions();
   canvasColorInput.value = state.canvasColor;
+  snapBottomToggle.checked = state.snapToBottom;
   seedGuideVisibility();
   renderGuideControls();
   updateCanvasSize();
