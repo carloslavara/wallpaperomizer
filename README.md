@@ -12,7 +12,6 @@ A privacy-first, browser-based iPhone wallpaper editor with device presets, lock
 - Align Bottom action and Snap to Bottom toggle for bottom-anchored composition
 - Per-guide visibility toggles + global guide toggle
 - Canvas color picker with image-based color suggestions
-- Retro VHS / CRT filter with adjustable strength, softness, scanlines, noise, RGB split, glow, vignette, and presets
 - Guide overlays are preview-only (not exported)
 - Export PNG or JPG with quality control
 - iPhone 11 Pro Max lock-screen guides use 60px horizontal insets on both sides (x=60..1182, width=1122) for date/clock/widgets/safe areas and the bottom gesture exclusion
