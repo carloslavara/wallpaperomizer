@@ -126,7 +126,18 @@ const state = {
   exportFormat: 'png',
   exportQuality: 0.92,
   canvasColor: '#0b0f20',
-  snapToBottom: false
+  snapToBottom: false,
+  retroFilter: {
+    enabled: false,
+    preset: 'custom',
+    strength: 0.45,
+    softness: 0.35,
+    scanlines: 0.30,
+    noise: 0.25,
+    rgbSplit: 0.22,
+    glow: 0.24,
+    vignette: 0.22
+  }
 };
 
 const startEditingBtn = document.getElementById('startEditingBtn');
@@ -148,6 +159,16 @@ const fillBtn = document.getElementById('fillBtn');
 const centerBtn = document.getElementById('centerBtn');
 const alignBottomBtn = document.getElementById('alignBottomBtn');
 const resetBtn = document.getElementById('resetBtn');
+const retroFilterEnabled = document.getElementById('retroFilterEnabled');
+const retroControls = document.getElementById('retroControls');
+const retroPreset = document.getElementById('retroPreset');
+const retroStrength = document.getElementById('retroStrength');
+const retroSoftness = document.getElementById('retroSoftness');
+const retroScanlines = document.getElementById('retroScanlines');
+const retroNoise = document.getElementById('retroNoise');
+const retroRgbSplit = document.getElementById('retroRgbSplit');
+const retroGlow = document.getElementById('retroGlow');
+const retroVignette = document.getElementById('retroVignette');
 const exportFormat = document.getElementById('exportFormat');
 const qualityRange = document.getElementById('qualityRange');
 const qualityWrap = document.getElementById('qualityWrap');
@@ -213,31 +234,40 @@ function drawGuides() {
 }
 
 function drawImage() {
+  renderImageToContext(ctx, canvas.width, canvas.height, { showPlaceholder: true });
+}
+
+function renderImageToContext(targetCtx, width, height, options = { showPlaceholder: false }) {
+  targetCtx.save();
+  targetCtx.fillStyle = state.canvasColor;
+  targetCtx.fillRect(0, 0, width, height);
+
   if (!state.image?.element) {
-    ctx.fillStyle = state.canvasColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#95a0c7';
-    ctx.font = '32px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('Upload an image to begin', canvas.width / 2, canvas.height / 2);
+    if (options.showPlaceholder) {
+      targetCtx.fillStyle = '#95a0c7';
+      targetCtx.font = '32px system-ui';
+      targetCtx.textAlign = 'center';
+      targetCtx.fillText('Upload an image to begin', width / 2, height / 2);
+    }
+    targetCtx.restore();
     return;
   }
 
-  ctx.save();
-  ctx.fillStyle = state.canvasColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.translate(state.image.x, state.image.y);
-  ctx.rotate((state.image.rotation * Math.PI) / 180);
-  ctx.scale(state.image.scale, state.image.scale);
-  ctx.drawImage(
+  targetCtx.translate(state.image.x, state.image.y);
+  targetCtx.rotate((state.image.rotation * Math.PI) / 180);
+  targetCtx.scale(state.image.scale, state.image.scale);
+  targetCtx.drawImage(
     state.image.element,
     -state.image.naturalWidth / 2,
     -state.image.naturalHeight / 2,
     state.image.naturalWidth,
     state.image.naturalHeight
   );
-  ctx.restore();
+  targetCtx.restore();
+
+  if (state.retroFilter.enabled) {
+    applyRetroFilter(targetCtx, width, height, state.retroFilter);
+  }
 }
 
 function render() {
@@ -441,6 +471,24 @@ function bindEvents() {
     render();
   });
 
+  retroFilterEnabled.addEventListener('change', () => {
+    state.retroFilter.enabled = retroFilterEnabled.checked;
+    retroControls.classList.toggle('hidden', !state.retroFilter.enabled);
+    render();
+  });
+
+  retroPreset.addEventListener('change', () => {
+    applyRetroPreset(retroPreset.value);
+    render();
+  });
+
+  [retroStrength, retroSoftness, retroScanlines, retroNoise, retroRgbSplit, retroGlow, retroVignette].forEach((control) => {
+    control.addEventListener('input', () => {
+      updateRetroFromControls();
+      render();
+    });
+  });
+
   downloadBtn.addEventListener('click', () => {
     if (!state.image) {
       alert('Upload an image before exporting.');
@@ -484,6 +532,152 @@ function bindEvents() {
 
   helpBtn.addEventListener('click', () => helpDialog.showModal());
   closeHelpBtn.addEventListener('click', () => helpDialog.close());
+}
+
+function clampByte(value) {
+  return Math.max(0, Math.min(255, value));
+}
+
+function coordinateNoise(x, y) {
+  const seed = (x * 374761393 + y * 668265263) ^ (x * y);
+  const value = Math.sin(seed) * 43758.5453123;
+  return value - Math.floor(value);
+}
+
+function setRetroControlValues() {
+  retroFilterEnabled.checked = state.retroFilter.enabled;
+  retroControls.classList.toggle('hidden', !state.retroFilter.enabled);
+  retroPreset.value = state.retroFilter.preset;
+  retroStrength.value = String(state.retroFilter.strength);
+  retroSoftness.value = String(state.retroFilter.softness);
+  retroScanlines.value = String(state.retroFilter.scanlines);
+  retroNoise.value = String(state.retroFilter.noise);
+  retroRgbSplit.value = String(state.retroFilter.rgbSplit);
+  retroGlow.value = String(state.retroFilter.glow);
+  retroVignette.value = String(state.retroFilter.vignette);
+}
+
+function applyRetroPreset(presetName) {
+  const presets = {
+    'soft-crt': { strength: 0.38, softness: 0.45, scanlines: 0.22, noise: 0.18, rgbSplit: 0.14, glow: 0.28, vignette: 0.16 },
+    'retro-anime': { strength: 0.52, softness: 0.40, scanlines: 0.34, noise: 0.27, rgbSplit: 0.24, glow: 0.30, vignette: 0.22 },
+    'vhs-tape': { strength: 0.62, softness: 0.50, scanlines: 0.45, noise: 0.34, rgbSplit: 0.34, glow: 0.22, vignette: 0.28 }
+  };
+
+  if (presetName === 'custom' || !presets[presetName]) {
+    state.retroFilter.preset = 'custom';
+    return;
+  }
+
+  Object.assign(state.retroFilter, presets[presetName], { preset: presetName });
+  setRetroControlValues();
+}
+
+function updateRetroFromControls() {
+  state.retroFilter.strength = Number(retroStrength.value);
+  state.retroFilter.softness = Number(retroSoftness.value);
+  state.retroFilter.scanlines = Number(retroScanlines.value);
+  state.retroFilter.noise = Number(retroNoise.value);
+  state.retroFilter.rgbSplit = Number(retroRgbSplit.value);
+  state.retroFilter.glow = Number(retroGlow.value);
+  state.retroFilter.vignette = Number(retroVignette.value);
+  if (state.retroFilter.preset !== 'custom') {
+    state.retroFilter.preset = 'custom';
+    retroPreset.value = 'custom';
+  }
+}
+
+function applyRetroFilter(targetCtx, width, height, settings) {
+  const strength = settings.strength;
+
+  if (settings.softness > 0.01) {
+    const softnessCanvas = document.createElement('canvas');
+    softnessCanvas.width = Math.max(1, Math.floor(width * (1 - 0.20 * settings.softness * strength)));
+    softnessCanvas.height = Math.max(1, Math.floor(height * (1 - 0.20 * settings.softness * strength)));
+    const softnessCtx = softnessCanvas.getContext('2d');
+    softnessCtx.drawImage(targetCtx.canvas, 0, 0, softnessCanvas.width, softnessCanvas.height);
+    targetCtx.clearRect(0, 0, width, height);
+    targetCtx.imageSmoothingEnabled = true;
+    targetCtx.drawImage(softnessCanvas, 0, 0, width, height);
+  }
+
+  if (settings.glow > 0.01) {
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = width;
+    glowCanvas.height = height;
+    const glowCtx = glowCanvas.getContext('2d');
+    glowCtx.drawImage(targetCtx.canvas, 0, 0);
+
+    targetCtx.save();
+    targetCtx.globalAlpha = settings.glow * strength * 0.45;
+    targetCtx.globalCompositeOperation = 'screen';
+    targetCtx.filter = `blur(${(2 + settings.glow * 3).toFixed(2)}px)`;
+    targetCtx.drawImage(glowCanvas, 0, 0);
+    targetCtx.restore();
+  }
+
+  const imageData = targetCtx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const src = new Uint8ClampedArray(data);
+  const splitPixels = Math.max(0, Math.round(settings.rgbSplit * strength * 3));
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const idx = (y * width + x) * 4;
+      const offset = Math.min(splitPixels, Math.floor((Math.abs(x - centerX) / centerX) * splitPixels));
+      const rIdx = (y * width + Math.min(width - 1, x + offset)) * 4;
+      const bIdx = (y * width + Math.max(0, x - offset)) * 4;
+
+      let r = src[rIdx];
+      let g = src[idx + 1];
+      let b = src[bIdx + 2];
+
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      const saturation = 1 - settings.strength * 0.18;
+      r = gray + (r - gray) * saturation;
+      g = gray + (g - gray) * saturation;
+      b = gray + (b - gray) * saturation;
+
+      const lift = settings.strength * 12;
+      r += lift;
+      g += lift;
+      b += lift;
+
+      const coolShadow = settings.strength * 10;
+      const warmHighlight = settings.strength * 8;
+      if (gray < 120) {
+        b += coolShadow;
+      } else {
+        r += warmHighlight;
+        g += warmHighlight * 0.3;
+      }
+
+      const lineFactor = 1 - settings.scanlines * strength * (y % 2 === 0 ? 0.16 : 0.05);
+      r *= lineFactor;
+      g *= lineFactor;
+      b *= lineFactor;
+
+      const noise = (coordinateNoise(x, y) - 0.5) * 2 * settings.noise * strength * 20;
+      r += noise;
+      g += noise;
+      b += noise;
+
+      const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2) / maxDist;
+      const vignette = 1 - settings.vignette * strength * Math.max(0, dist - 0.3) * 0.7;
+      r *= vignette;
+      g *= vignette;
+      b *= vignette;
+
+      data[idx] = clampByte(r);
+      data[idx + 1] = clampByte(g);
+      data[idx + 2] = clampByte(b);
+    }
+  }
+
+  targetCtx.putImageData(imageData, 0, 0);
 }
 
 function getCanvasPoint(event) {
@@ -570,19 +764,7 @@ function renderExportCanvas() {
   exportCanvas.width = canvas.width;
   exportCanvas.height = canvas.height;
   const exportCtx = exportCanvas.getContext('2d');
-
-  exportCtx.fillStyle = state.canvasColor;
-  exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-  exportCtx.translate(state.image.x, state.image.y);
-  exportCtx.rotate((state.image.rotation * Math.PI) / 180);
-  exportCtx.scale(state.image.scale, state.image.scale);
-  exportCtx.drawImage(
-    state.image.element,
-    -state.image.naturalWidth / 2,
-    -state.image.naturalHeight / 2,
-    state.image.naturalWidth,
-    state.image.naturalHeight
-  );
+  renderImageToContext(exportCtx, exportCanvas.width, exportCanvas.height, { showPlaceholder: false });
   return exportCanvas;
 }
 
@@ -606,6 +788,7 @@ function init() {
   setupDeviceOptions();
   canvasColorInput.value = state.canvasColor;
   snapBottomToggle.checked = state.snapToBottom;
+  setRetroControlValues();
   seedGuideVisibility();
   renderGuideControls();
   updateCanvasSize();
